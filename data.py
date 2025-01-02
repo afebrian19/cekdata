@@ -6,17 +6,75 @@ import time
 # Heading Aplikasi
 st.set_page_config(page_title="Aplikasi Tracing Perubahan Kolektabilitas", layout="wide")
 
-# Judul Aplikasi
-st.title("Aplikasi Cek Perubahan Kolektabilitas")
+# Gaya Umum Aplikasi
 st.markdown("""
-    Aplikasi ini memungkinkan Anda untuk membandingkan perubahan kolektabilitas antara dua file Excel, 
-    satu untuk **Bulan Lalu** dan satu untuk **Data Saat Ini**. Kolom yang dibandingkan adalah **_KOLEK** berdasarkan **NOREKENING**.
-    Unggah kedua file Excel Anda dan lihat hasilnya!
-""")
+    <style>
+    /* Styling untuk background halaman */
+    .reportview-container {
+        background-color: #f4f6f9;
+    }
+    /* Judul utama */
+    .title {
+        font-size: 36px;
+        font-weight: bold;
+        color: #1a3a5c;
+        text-align: center;
+        padding: 10px 0;
+    }
+    /* Styling teks penjelasan */
+    .description {
+        font-size: 18px;
+        color: #555555;
+        line-height: 1.8;
+        text-align: center;
+    }
+    /* Sidebar */
+    .sidebar .sidebar-content {
+        background-color: #2C3E50;
+        color: white;
+    }
+    .sidebar .sidebar-header {
+        font-size: 20px;
+        font-weight: bold;
+        color: white;
+    }
+    /* Styling tombol dan elemen interaktif */
+    .stButton>button {
+        background-color: #3498db;
+        color: white;
+        font-weight: bold;
+        border-radius: 5px;
+        padding: 10px 20px;
+        font-size: 16px;
+    }
+    /* Styling tabel */
+    .dataframe {
+        font-size: 14px;
+        color: #2c3e50;
+    }
+    /* Footer */
+    .footer {
+        text-align: center;
+        font-size: 16px;
+        color: #7f8c8d;
+        padding: 20px;
+    }
+    </style>
+""", unsafe_allow_html=True)
+
+# Judul Aplikasi
+st.markdown('<div class="title">Aplikasi Tracing Perubahan Kolektabilitas</div>', unsafe_allow_html=True)
+
+# Penjelasan Aplikasi
+st.markdown("""
+    <p class="description">
+        Aplikasi ini digunakan untuk memantau kolektabilitas Nasabah.
+    </p>
+""", unsafe_allow_html=True)
 
 # Menambahkan teks "Development by A. Febriansyah" di bawah judul aplikasi dengan bold
 st.markdown("""
-    <p style="text-align: center; font-size: 16px; font-weight: bold;">Development by A. Febriansyah</p>
+    <p class="footer">Development by A. Febriansyah</p>
 """, unsafe_allow_html=True)
 
 # Sidebar untuk Unggah File Excel
@@ -35,7 +93,9 @@ def format_rp(value):
 def highlight_kocek(val):
     color = 'background-color: white;'  # Default background
     try:
-        if val["_KOLEK_SAAT_INI"] > val["_KOLEK_BULAN_LALU"]:
+        if val["_KOLEK_BULAN_LALU"] == 0:
+            color = 'background-color: #ADD8E6;'  # Biru terang jika bulan lalu 0
+        elif val["_KOLEK_SAAT_INI"] > val["_KOLEK_BULAN_LALU"]:
             color = 'background-color: red; color: white;'  # Merah jika naik
         elif val["_KOLEK_SAAT_INI"] < val["_KOLEK_BULAN_LALU"]:
             color = 'background-color: green; color: white;'  # Hijau jika turun
@@ -55,8 +115,17 @@ if uploaded_file_bulan_lalu and uploaded_file_data_saat_ini:
             # Deteksi jenis file
             file_extension_bulan_lalu = uploaded_file_bulan_lalu.name.split(".")[-1]
             file_extension_data_saat_ini = uploaded_file_data_saat_ini.name.split(".")[-1]
-            engine_bulan_lalu = "xlrd" if file_extension_bulan_lalu == "xls" else "openpyxl"
-            engine_data_saat_ini = "xlrd" if file_extension_data_saat_ini == "xls" else "openpyxl"
+
+            # Tentukan engine untuk masing-masing file
+            if file_extension_bulan_lalu == "xls":
+                engine_bulan_lalu = "xlrd"
+            else:
+                engine_bulan_lalu = "openpyxl"
+
+            if file_extension_data_saat_ini == "xls":
+                engine_data_saat_ini = "xlrd"
+            else:
+                engine_data_saat_ini = "openpyxl"
 
             # Membaca file
             df_bulan_lalu = pd.read_excel(uploaded_file_bulan_lalu, engine=engine_bulan_lalu)
@@ -100,6 +169,18 @@ if uploaded_file_bulan_lalu and uploaded_file_data_saat_ini:
             # Pastikan _KOLEK_BULAN_LALU tetap integer
             merged_df["_KOLEK_BULAN_LALU"] = pd.to_numeric(merged_df["_KOLEK_BULAN_LALU"], errors='coerce').fillna(0).astype(int)
 
+            # Tambahkan kolom status
+            def add_status(row):
+                if row["_KOLEK_SAAT_INI"] > row["_KOLEK_BULAN_LALU"]:
+                    return "Naik"
+                elif row["_KOLEK_SAAT_INI"] < row["_KOLEK_BULAN_LALU"]:
+                    return "Turun"
+                elif row["_KOLEK_BULAN_LALU"] == 0:
+                    return "Baru"
+                return "Tidak Berubah"
+            
+            merged_df["Status"] = merged_df.apply(add_status, axis=1)
+
             # Format kolom sebagai IDR
             if "BAKIDEBET" in merged_df.columns:
                 merged_df["BAKIDEBET"] = merged_df["BAKIDEBET"].apply(format_rp)
@@ -110,7 +191,7 @@ if uploaded_file_bulan_lalu and uploaded_file_data_saat_ini:
             styled_df = style_dataframe(merged_df)
 
             # Tampilkan hasil
-            st.write("### Data Gabungan **Data Saat Ini** dan **Bulan Lalu**")
+            st.write("### Hasil Tracing Perubahan Kolek **Data Saat Ini** dan **Bulan Lalu**")
             st.markdown("Perbandingan antara data kolektabilitas **Data Saat Ini** dengan **Bulan Lalu** berdasarkan **NOREKENING**.")
             st.dataframe(styled_df)
 
@@ -122,7 +203,7 @@ if uploaded_file_bulan_lalu and uploaded_file_data_saat_ini:
 
             # Tombol unduh file
             st.download_button(
-                label="Unduh Data Gabungan",
+                label="Unduh Data",
                 data=processed_data,
                 file_name="gabungan_data_perubahan_kolektabilitas.xlsx",
                 mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
