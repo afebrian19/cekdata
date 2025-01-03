@@ -4,7 +4,7 @@ from io import BytesIO
 import time
 
 # Heading Aplikasi
-st.set_page_config(page_title="Aplikasi Tracing Perubahan Kolektabilitas", layout="wide")
+st.set_page_config(page_title="Aplikasi Tracing Perubahan Kolektabilitas BPR BATANGHARI", layout="wide")
 
 # Gaya Umum Aplikasi
 st.markdown("""
@@ -63,7 +63,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 # Judul Aplikasi
-st.markdown('<div class="title">Aplikasi Tracing Perubahan Kolektabilitas</div>', unsafe_allow_html=True)
+st.markdown('<div class="title">Aplikasi Tracing Perubahan Kolektabilitas BPR BATANGHARI</div>', unsafe_allow_html=True)
 
 # Penjelasan Aplikasi
 st.markdown("""
