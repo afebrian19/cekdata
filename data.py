@@ -93,11 +93,11 @@ def format_rp(value):
 def highlight_kocek(val):
     color = 'background-color: white;'  # Default background
     try:
-        if val["_KOLEK_BULAN_LALU"] == 0:
+        if val["kol_sebelumnya"] == 0:
             color = 'background-color: #ADD8E6;'  # Biru terang jika bulan lalu 0
-        elif val["_KOLEK_SAAT_INI"] > val["_KOLEK_BULAN_LALU"]:
+        elif val["kol_saat_ini"] > val["kol_sebelumnya"]:
             color = 'background-color: red; color: white;'  # Merah jika naik
-        elif val["_KOLEK_SAAT_INI"] < val["_KOLEK_BULAN_LALU"]:
+        elif val["kol_saat_ini"] < val["kol_sebelumnya"]:
             color = 'background-color: green; color: white;'  # Hijau jika turun
     except:
         pass
@@ -163,23 +163,29 @@ if uploaded_file_bulan_lalu and uploaded_file_data_saat_ini:
                 df_bulan_lalu_filtered[["NOREKENING", "_KOLEK"]],
                 on="NOREKENING",
                 how="left",
-                suffixes=("_SAAT_INI", "_BULAN_LALU")
+                suffixes=("_saat_ini", "_bulan_lalu")
             )
 
-            # Pastikan _KOLEK_BULAN_LALU tetap integer
-            merged_df["_KOLEK_BULAN_LALU"] = pd.to_numeric(merged_df["_KOLEK_BULAN_LALU"], errors='coerce').fillna(0).astype(int)
+            # Pastikan kol_sebelumnya tetap integer
+            merged_df["kol_sebelumnya"] = pd.to_numeric(merged_df["_KOLEK_bulan_lalu"], errors='coerce').fillna(0).astype(int)
+            merged_df["kol_saat_ini"] = pd.to_numeric(merged_df["_KOLEK_saat_ini"], errors='coerce').fillna(0).astype(int)
 
             # Tambahkan kolom status
             def add_status(row):
-                if row["_KOLEK_SAAT_INI"] > row["_KOLEK_BULAN_LALU"]:
+                if row["kol_sebelumnya"] == 0:  # Jika kolektabilitas bulan lalu 0
+                    return "Pinjaman Baru"
+                elif row["kol_saat_ini"] > row["kol_sebelumnya"]:  # Jika kolektabilitas naik
                     return "Naik"
-                elif row["_KOLEK_SAAT_INI"] < row["_KOLEK_BULAN_LALU"]:
+                elif row["kol_saat_ini"] < row["kol_sebelumnya"]:  # Jika kolektabilitas turun
                     return "Turun"
-                elif row["_KOLEK_BULAN_LALU"] == 0:
-                    return "Baru"
                 return "Tidak Berubah"
             
             merged_df["Status"] = merged_df.apply(add_status, axis=1)
+
+            # Tambahkan nomor urut dan susun kolom
+            merged_df.insert(0, 'NO', range(1, len(merged_df) + 1))
+            column_order = ["NO", "NOREKENING", "_PRODUK", "NAMA", "PLAFOND", "BAKIDEBET", "kol_sebelumnya", "kol_saat_ini", "Status"]
+            merged_df = merged_df[column_order]
 
             # Format kolom sebagai IDR
             if "BAKIDEBET" in merged_df.columns:
